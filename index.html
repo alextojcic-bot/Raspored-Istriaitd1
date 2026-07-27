@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raspored — turistički najam</title>
+<style>
+  :root{
+    --deep: #163A4D;
+    --deep-2: #1F4E66;
+    --sand: #F1E9D8;
+    --sand-2: #E7DCC4;
+    --card: #FFFFFF;
+    --ink: #23282B;
+    --ink-soft: #5B6266;
+    --line: #DDD3BC;
+    --rust: #B5602F;
+    --olive: #6E7A52;
+    --teal: #2F7A73;
+    --ok: #2F7A73;
+    --warn: #B5602F;
+    --danger: #A8432E;
+    --radius: 10px;
+    --shadow: 0 1px 2px rgba(22,58,77,0.08), 0 4px 14px rgba(22,58,77,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background: var(--sand); color: var(--ink);
+    font-family: "Segoe UI", "Public Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .app{max-width:1220px; margin:0 auto; padding: 28px 20px 60px;}
+
+  header.top{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    gap: 16px; flex-wrap: wrap; margin-bottom: 22px; padding-bottom: 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand{display:flex; align-items:center; gap:14px;}
+  .brand-mark{
+    width:44px; height:44px; border-radius: 9px;
+    background: linear-gradient(160deg, var(--deep), var(--deep-2));
+    display:flex; align-items:center; justify-content:center; box-shadow: var(--shadow); flex-shrink:0;
+  }
+  .brand-mark svg{width:24px; height:24px;}
+  h1{ font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif; font-size: 28px; margin:0; letter-spacing:0.2px; color:var(--deep); }
+  .brand p{margin:2px 0 0; color:var(--ink-soft); font-size:13.5px;}
+
+  .totals{display:flex; gap:10px; flex-wrap:wrap;}
+  .total-chip{
+    background: var(--card); border:1px solid var(--line); border-radius: var(--radius);
+    padding: 8px 16px; box-shadow: var(--shadow); text-align:right; min-width:130px;
+  }
+  .total-chip .label{font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-soft);}
+  .total-chip .val{font-family: Georgia, serif; font-size:20px; color:var(--deep); font-weight:700;}
+
+  .tabs{display:flex; gap:6px; margin-bottom:18px;}
+  .tab-btn{
+    background:transparent; border:1px solid transparent; border-bottom:none;
+    padding:9px 18px; font-size:14.5px; cursor:pointer; color:var(--ink-soft);
+    border-radius: 8px 8px 0 0; font-weight:600;
+  }
+  .tab-btn.active{ background: var(--card); color:var(--deep); border-color: var(--line); box-shadow: 0 -2px 0 var(--rust) inset; }
+
+  .panel{ background: var(--card); border:1px solid var(--line); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+
+  .controls{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:16px; justify-content: space-between; }
+  .filters{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  select, input, textarea{
+    font-family: inherit; font-size: 13.5px; color: var(--ink);
+    background: var(--sand); border:1px solid var(--line); border-radius:7px; padding: 7px 10px;
+  }
+  select:focus, input:focus, textarea:focus{outline:2px solid var(--teal); outline-offset:1px;}
+  .btn{ font-family: inherit; font-size:13.5px; font-weight:600; cursor:pointer; border-radius:7px; padding:8px 15px; border:1px solid transparent; }
+  .btn-primary{background: var(--deep); color:#fff;}
+  .btn-primary:hover{background: var(--deep-2);}
+  .btn-ghost{background:transparent; border:1px solid var(--line); color:var(--ink);}
+  .btn-ghost:hover{background: var(--sand-2);}
+  .btn-sort{display:flex; align-items:center; gap:6px;}
+
+  table{width:100%; border-collapse: collapse; font-size:13.5px;}
+  thead th{
+    text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.05em;
+    color: var(--ink-soft); border-bottom:1px solid var(--line); padding:8px 10px; white-space:nowrap;
+  }
+  tbody tr{border-bottom:1px solid var(--line);}
+  tbody tr:hover{background: var(--sand);}
+  tbody td{padding:10px; vertical-align:middle;}
+  .empty-row td{text-align:center; color:var(--ink-soft); padding:32px 10px; font-style:italic;}
+
+  .date-cell{font-weight:700; color:var(--deep); white-space:nowrap;}
+  .date-cell.izlaz{color:var(--rust);}
+  .arrow-cell{color:var(--ink-soft); text-align:center; width:20px;}
+
+  .vrsta-chip{ display:inline-flex; align-items:center; gap:6px; padding:4px 9px; border-radius:20px; font-size:12px; font-weight:600; white-space:nowrap; }
+  .vrsta-boravak{background:#E4EEE9; color:var(--teal);}
+  .vrsta-ciscenje{background:#EFEEDD; color:var(--olive);}
+  .vrsta-dubinsko{background:#E7DEEF; color:#6B4B8A;}
+
+  .status-badge{ display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:700; padding:4px 10px; border-radius:20px; cursor:pointer; border:1px solid transparent; }
+  .status-zakazano{background:#FBEFE4; color:var(--warn); border-color:#EAD3B8;}
+  .status-odradjeno{background:#E4EFEC; color:var(--ok); border-color:#C9E0D8;}
+
+  .obj-name{font-weight:700; color:var(--deep);}
+  .napomena-cell{color:var(--ink-soft); max-width:200px;}
+  .zarada-cell{font-weight:700; color:var(--deep); text-align:right; white-space:nowrap;}
+  .del-btn{ background:transparent; border:none; cursor:pointer; color:var(--ink-soft); font-size:16px; line-height:1; padding:4px; }
+  .del-btn:hover{color:var(--danger);}
+
+  .add-form{ display:none; margin-top:16px; padding:18px; background: var(--sand); border:1px dashed var(--line); border-radius: var(--radius); }
+  .add-form.open{display:block;}
+  .form-grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; margin-bottom:12px; }
+  .form-grid label{display:flex; flex-direction:column; font-size:12px; color:var(--ink-soft); gap:4px; font-weight:600;}
+  .form-grid select, .form-grid input{width:100%;}
+  .form-actions{display:flex; gap:10px; justify-content:flex-end;}
+
+  .obj-grid{display:grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap:14px; margin-bottom:18px;}
+  .obj-card{ border:1px solid var(--line); border-radius: var(--radius); padding:14px 16px; background: var(--sand); position:relative; }
+  .obj-card h3{margin:0 0 6px; font-family: Georgia, serif; color:var(--deep); font-size:17px;}
+  .obj-card .row{font-size:12.5px; color:var(--ink-soft); margin-bottom:3px;}
+  .obj-card .price{margin-top:8px; font-weight:700; color:var(--rust); font-size:14px;}
+  .obj-card .del-btn{position:absolute; top:10px; right:10px;}
+
+  footer.note{margin-top:20px; font-size:12px; color:var(--ink-soft); text-align:center;}
+
+  /* NAPOMENE TAB */
+  .quick-note{
+    background: var(--sand); border:1px solid var(--line); border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .quick-note-row{display:flex; gap:10px; margin-bottom:10px; align-items:center; flex-wrap:wrap;}
+  .quick-note-row select{flex:1; min-width:180px;}
+  .quick-note textarea{
+    width:100%; resize:vertical; min-height:52px; font-family:inherit;
+  }
+  .note-card{
+    display:flex; gap:12px; align-items:flex-start;
+    padding:12px 4px; border-bottom:1px solid var(--line);
+  }
+  .note-card:last-child{border-bottom:none;}
+  .note-date{
+    font-size:11px; color:var(--ink-soft); white-space:nowrap; min-width:78px; padding-top:2px;
+  }
+  .note-body{flex:1;}
+  .note-tag{
+    display:inline-block; font-size:11px; font-weight:700; color:var(--teal);
+    background:#E4EEE9; border-radius:12px; padding:2px 9px; margin-bottom:5px;
+  }
+  .note-tag.opca{color:var(--ink-soft); background:var(--sand-2);}
+  .note-text{font-size:13.5px; color:var(--ink); white-space:pre-wrap; line-height:1.45;}
+  .note-empty{color:var(--ink-soft); font-style:italic; padding:24px 4px; text-align:center;}
+
+  /* PO OBJEKTU TAB */
+  .obj-picker{display:flex; flex-wrap:wrap; gap:8px;}
+  .obj-chip{
+    padding:8px 16px; border-radius:20px; border:1px solid var(--line);
+    background: var(--sand); color:var(--ink); font-size:13.5px; font-weight:600; cursor:pointer;
+  }
+  .obj-chip:hover{background: var(--sand-2);}
+  .obj-chip.active{background: var(--deep); color:#fff; border-color:var(--deep);}
+  .obj-summary{
+    display:flex; gap:24px; flex-wrap:wrap; margin-bottom:16px; padding:14px 16px;
+    background: var(--sand); border-radius: var(--radius); border:1px solid var(--line);
+  }
+  .obj-summary .stat{font-size:13px; color:var(--ink-soft);}
+  .obj-summary .stat b{color:var(--deep); font-family:Georgia,serif; font-size:16px;}
+
+  /* PO TJEDNU TAB */
+  .week-block{margin-bottom:22px;}
+  .week-header{
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;
+    padding:8px 4px; border-bottom:2px solid var(--deep); margin-bottom:8px;
+  }
+  .week-header h3{ margin:0; font-family:Georgia,serif; color:var(--deep); font-size:16px; }
+  .week-header .week-total{font-size:13px; font-weight:700; color:var(--rust);}
+
+  @media (max-width: 720px){
+    .form-grid{grid-template-columns: 1fr 1fr;}
+    table{display:block; overflow-x:auto;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 12L12 4L21 12" stroke="#F1E9D8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M6 10.5V19.5H18V10.5" stroke="#F1E9D8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M10 19.5V15H14V19.5" stroke="#B5602F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Raspored najma</h1>
+        <p>Kronološki pregled ulaza, izlaza i čišćenja</p>
+      </div>
+    </div>
+    <div class="totals">
+      <div class="total-chip"><div class="label">Ukupna zarada</div><div class="val" id="totalAll">0 €</div></div>
+      <div class="total-chip"><div class="label">Prikazano (filtrirano)</div><div class="val" id="totalFiltered">0 €</div></div>
+      <div class="total-chip"><div class="label">Neodrađeno</div><div class="val" id="totalPending">0</div></div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="raspored">Raspored</button>
+    <button class="tab-btn" data-tab="poobjektu">Po objektu</button>
+    <button class="tab-btn" data-tab="potjednu">Po tjednu</button>
+    <button class="tab-btn" data-tab="objekti">Objekti</button>
+    <button class="tab-btn" data-tab="napomene">Napomene</button>
+  </div>
+
+  <!-- RASPORED TAB -->
+  <div class="panel" id="tab-raspored">
+    <div class="controls">
+      <div class="filters">
+        <select id="filterObjekt"><option value="">Svi objekti</option></select>
+        <select id="filterStatus">
+          <option value="">Svi statusi</option>
+          <option value="Zakazano">Zakazano</option>
+          <option value="Odrađeno">Odrađeno</option>
+        </select>
+        <button class="btn btn-ghost btn-sort" id="sortBtn"><span id="sortLabel">Najraniji prvi</span> ↓</button>
+      </div>
+      <button class="btn btn-primary" id="toggleAddBtn">+ Dodaj unos</button>
+    </div>
+
+    <div class="add-form" id="addForm">
+      <div class="form-grid">
+        <label>Ulaz (dolazak / datum)
+          <input type="date" id="f-ulaz">
+        </label>
+        <label>Izlaz (odlazak) — opcionalno
+          <input type="date" id="f-izlaz">
+        </label>
+        <label>Objekt
+          <select id="f-objekt"><option value="">— odaberi —</option></select>
+        </label>
+        <label>Vrsta
+          <select id="f-vrsta">
+            <option>Boravak</option>
+            <option>Čišćenje</option>
+            <option>Dubinsko čišćenje</option>
+          </select>
+        </label>
+        <label>Gost (opcionalno)
+          <input type="text" id="f-gost" placeholder="Ime gosta">
+        </label>
+        <label>Status
+          <select id="f-status"><option>Zakazano</option><option>Odrađeno</option></select>
+        </label>
+        <label>Zarada (EUR)
+          <input type="number" id="f-zarada" placeholder="0" step="0.01">
+        </label>
+        <label>Napomena
+          <input type="text" id="f-napomena" placeholder="Šifra ključeva, posebni zahtjevi...">
+        </label>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" id="cancelAddBtn">Odustani</button>
+        <button class="btn btn-primary" id="saveAddBtn">Spremi unos</button>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto; margin-top:16px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Ulaz</th>
+            <th></th>
+            <th>Izlaz</th>
+            <th>Objekt</th>
+            <th>Vrsta</th>
+            <th>Gost</th>
+            <th>Status</th>
+            <th>Napomena</th>
+            <th style="text-align:right;">Zarada</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="rasporedBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PO OBJEKTU TAB -->
+  <div class="panel" id="tab-poobjektu" style="display:none;">
+    <div class="obj-picker" id="objPicker"></div>
+    <div id="poObjektuSadrzaj" style="margin-top:18px;"></div>
+  </div>
+
+  <!-- PO TJEDNU TAB -->
+  <div class="panel" id="tab-potjednu" style="display:none;">
+    <div id="poTjednuSadrzaj"></div>
+  </div>
+
+  <!-- OBJEKTI TAB -->
+  <div class="panel" id="tab-objekti" style="display:none;">
+    <div class="controls">
+      <div></div>
+      <button class="btn btn-primary" id="toggleAddObjBtn">+ Dodaj objekt</button>
+    </div>
+    <div class="add-form" id="addObjForm">
+      <div class="form-grid">
+        <label>Naziv objekta
+          <input type="text" id="o-naziv" placeholder="npr. Apartman Vidikovac">
+        </label>
+        <label>Adresa
+          <input type="text" id="o-adresa" placeholder="Ulica i broj, mjesto">
+        </label>
+        <label>Kontakt vlasnika
+          <input type="text" id="o-kontakt" placeholder="Telefon / e-mail">
+        </label>
+        <label>Cijena čišćenja (EUR)
+          <input type="number" id="o-cijena" placeholder="0" step="0.01">
+        </label>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" id="cancelAddObjBtn">Odustani</button>
+        <button class="btn btn-primary" id="saveAddObjBtn">Spremi objekt</button>
+      </div>
+    </div>
+    <div class="obj-grid" id="objektiGrid" style="margin-top:16px;"></div>
+  </div>
+
+  <!-- NAPOMENE TAB -->
+  <div class="panel" id="tab-napomene" style="display:none;">
+    <div class="quick-note">
+      <div class="quick-note-row">
+        <select id="n-objekt"><option value="">Opća napomena (bez objekta)</option></select>
+        <button class="btn btn-primary" id="saveNoteBtn">+ Spremi napomenu</button>
+      </div>
+      <textarea id="n-tekst" rows="2" placeholder="Upiši brzo što ti je netko rekao — npr. 'Gost iz Zoande traži rani check-in 8.8.' ili 'Vlasnik Topolina mijenja bravu za 2 tjedna'..."></textarea>
+    </div>
+
+    <div class="controls" style="margin-top:18px;">
+      <div class="filters">
+        <select id="filterNoteObjekt"><option value="">Sve napomene</option></select>
+      </div>
+    </div>
+
+    <div id="napomeneList"></div>
+  </div>
+
+  <footer class="note">Podaci su dijeljeni i trajno spremljeni na serveru (Netlify) — svi koji otvore ovaj link vide i mogu uređivati iste unose.</footer>
+</div>
+
+<script>
+(function(){
+  const storageApi = {
+    async get(key){
+      try{
+        const res = await fetch('/api/storage?key=' + encodeURIComponent(key));
+        if(!res.ok) return null;
+        const json = await res.json();
+        return (json && json.value !== undefined && json.value !== null) ? json : null;
+      }catch(e){ return null; }
+    },
+    async set(key, value){
+      try{
+        const res = await fetch('/api/storage', {
+          method: 'POST',
+          headers: {'content-type': 'application/json'},
+          body: JSON.stringify({ key, value })
+        });
+        if(!res.ok) return null;
+        return await res.json();
+      }catch(e){ return null; }
+    }
+  };
+
+  const STORAGE_KEY = 'raspored-najma-data';
+  const SCHEMA_KEY = 'raspored-najma-shema-v3';
+  const PRICE_FLAG_KEY = 'raspored-najma-cijene-v1';
+  const PATCH_2026_07_A_KEY = 'raspored-najma-dodatak-2026-07-A';
+  const NEW_BOOKINGS_PATCH_A = [
+    {
+      ulaz: "2026-07-17", izlaz: "2026-07-22", objekt: "Tonia (Apartman)", vrsta: "Boravak",
+      gost: "Patricia Haiss", status: "Zakazano", zarada: 40,
+      napomena: "4 odraslih + pas, auto. Tel: +43 660 651 8232. Kaucija 150€ plaća agencija (gosti ne plaćaju u cashu). Gosti moraju u 3h od dolaska poslati slike eventualnih zatečenih oštećenja. Šteta iznad 150€ rješava se direktno s gostom."
+    },
+    {
+      ulaz: "2026-07-21", izlaz: "2026-07-26", objekt: "Lorenzo EG (Apartman)", vrsta: "Boravak",
+      gost: "Werner Kroell", status: "Zakazano", zarada: 30,
+      napomena: "2 osobe, auto. Tel: +43 699 1064 2764. Kaucija 100€ plaća agencija (gosti ne plaćaju u cashu). Gosti moraju u 3h od dolaska poslati slike eventualnih zatečenih oštećenja. Šteta iznad 100€ rješava se direktno s gostom."
+    },
+    {
+      ulaz: "2026-07-09", izlaz: "2026-07-14", objekt: "Piantina (Apartman)", vrsta: "Boravak",
+      gost: "", status: "Zakazano", zarada: 35, napomena: ""
+    }
+  ];
+  const PATCH_2026_07_B_KEY = 'raspored-najma-dodatak-2026-07-B';
+  const NEW_BOOKINGS_PATCH_B = [
+    {
+      ulaz: "2026-07-13", izlaz: "2026-07-15", objekt: "Urban (Apartman)", vrsta: "Boravak",
+      gost: "", status: "Zakazano", zarada: 25, napomena: ""
+    }
+  ];
+  const PATCH_2026_07_C_KEY = 'raspored-najma-dodatak-2026-07-C';
+  const NEW_BOOKINGS_PATCH_C = [
+    {
+      ulaz: "2026-07-13", izlaz: "2026-07-17", objekt: "Tonia (Apartman)", vrsta: "Boravak",
+      gost: "", status: "Zakazano", zarada: 40, napomena: ""
+    }
+  ];
+  const PATCH_2026_08_D_KEY = 'raspored-najma-dodatak-2026-08-D';
+  const NEW_BOOKINGS_PATCH_D = [
+    {
+      ulaz: "2026-08-10", izlaz: "2026-08-15", objekt: "Lorenzo OG (Apartman)", vrsta: "Boravak",
+      gost: "Carina Zimmermann", status: "Zakazano", zarada: 30,
+      napomena: "2 osobe, njemački (GER). Tel: +49 743 3140 2908. Kaucija 100€ plaća agencija (gosti ne plaćaju u cashu). Gosti moraju u 3h od dolaska poslati slike eventualnih zatečenih oštećenja. Šteta iznad 100€ rješava se direktno s gostom."
+    }
+  ];
+  const PATCH_2026_08_E_KEY = 'raspored-najma-dodatak-2026-08-E';
+  const NEW_BOOKINGS_PATCH_E = [
+    {
+      ulaz: "2026-08-12", izlaz: "2026-08-18", objekt: "Tonia (Apartman)", vrsta: "Boravak",
+      gost: "Szabolcs Keresztes", status: "Zakazano", zarada: 40,
+      napomena: "2 odraslih + 2 djece, mađarski (HUN). Tel: +36 30 645 4050. Kaucija 150€ plaća agencija (gosti ne plaćaju u cashu). Gosti moraju u 3h od dolaska poslati slike eventualnih zatečenih oštećenja. Šteta iznad 150€ rješava se direktno s gostom."
+    }
+  ];
+  const PATCH_2026_10_F_KEY = 'raspored-najma-dodatak-2026-10-F';
+  const NEW_BOOKINGS_PATCH_F = [
+    {
+      ulaz: "2026-10-07", izlaz: "2026-10-15", objekt: "Vila Gardenia (Vila)", vrsta: "Boravak",
+      gost: "Sophie Weidner", status: "Zakazano", zarada: 110,
+      napomena: "12 osoba, novozelandski (NZL). Tel: +64 21 175 0382. Gosti plaćaju 300€ sigurnosni depozit u cashu na check-inu — obavezno izdati pismenu potvrdu o primitku depozita."
+    }
+  ];
+  let sortAsc = true;
+
+  const STARTER_DATA = {"objekti": [{"id": "o_4e8f5f7b", "naziv": "Topolino (Vila)", "adresa": "", "kontakt": "", "cijena": 140}, {"id": "o_b353021a", "naziv": "Ana Valbandon (Apartman)", "adresa": "", "kontakt": "", "cijena": 40}, {"id": "o_24b865f1", "naziv": "Piantina (Apartman)", "adresa": "", "kontakt": "", "cijena": 35}, {"id": "o_e9e6e436", "naziv": "Zoanda (Apartman)", "adresa": "", "kontakt": "", "cijena": 40}, {"id": "o_cf225d1e", "naziv": "Luna Holiday (Apartman)", "adresa": "", "kontakt": "", "cijena": 30}, {"id": "o_83be76dc", "naziv": "Chill (Apartman)", "adresa": "", "kontakt": "", "cijena": 25}, {"id": "o_80ac333e", "naziv": "Urban (Apartman)", "adresa": "", "kontakt": "", "cijena": 25}, {"id": "o_c74adb2c", "naziv": "Novi Premantura (Apartman)", "adresa": "", "kontakt": "", "cijena": 30}, {"id": "o_c323982d", "naziv": "Vila Lord - App 2 (veliki)", "adresa": "", "kontakt": "", "cijena": 25}, {"id": "o_93cdff3d", "naziv": "Vila Lord - App 1 (veliki)", "adresa": "", "kontakt": "", "cijena": 25}, {"id": "o_8354e29a", "naziv": "Vila Lord - App 3 (mali)", "adresa": "", "kontakt": "", "cijena": 25}, {"id": "o_031458ba", "naziv": "Farfalle (Apartman)", "adresa": "", "kontakt": "", "cijena": 30}, {"id": "o_c6bbcbd8", "naziv": "Fassano (Vila)", "adresa": "", "kontakt": "", "cijena": 140}, {"id": "o_bbd52043", "naziv": "Flavia (Vila)", "adresa": "", "kontakt": "", "cijena": 120}, {"id": "o_7e6de193", "naziv": "Tonia (Apartman)", "adresa": "", "kontakt": "", "cijena": 40}, {"id": "o_96508392", "naziv": "Antico OG (Apartman)", "adresa": "", "kontakt": "", "cijena": 40}, {"id": "o_2397ba33", "naziv": "Antico EG (Apartman)", "adresa": "", "kontakt": "", "cijena": 30}, {"id": "o_6b162173", "naziv": "Lorenzo OG (Apartman)", "adresa": "", "kontakt": "", "cijena": 30}, {"id": "o_f39126c8", "naziv": "Lorenzo EG (Apartman)", "adresa": "", "kontakt": "", "cijena": 30}, {"id": "o_e2b08c3e", "naziv": "Vila Gardenia (Vila)", "adresa": "", "kontakt": "", "cijena": 110}], "shifts": [{"id": "s_19f8c302", "ulaz": "2026-07-06", "izlaz": "2026-07-13", "objekt": "Topolino (Vila)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 140}, {"id": "s_d7dd2f26", "ulaz": "2026-07-14", "izlaz": "2026-07-21", "objekt": "Topolino (Vila)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 140}, {"id": "s_3736b710", "ulaz": "2026-07-21", "izlaz": "2026-07-31", "objekt": "Topolino (Vila)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 140}, {"id": "s_d4842184", "ulaz": "2026-07-31", "izlaz": "2026-08-10", "objekt": "Topolino (Vila)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 140}, {"id": "s_3d309d0c", "ulaz": "2026-08-10", "izlaz": "2026-08-18", "objekt": "Topolino (Vila)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 140}, {"id": "s_386bcfc4", "ulaz": "2026-08-22", "izlaz": "2026-08-31", "objekt": "Topolino (Vila)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 140}, {"id": "s_859d7939", "ulaz": "2026-07-10", "izlaz": "2026-07-27", "objekt": "Ana Valbandon (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_1f842701", "ulaz": "2026-07-27", "izlaz": "2026-08-03", "objekt": "Ana Valbandon (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_c9c4e657", "ulaz": "2026-08-04", "izlaz": "2026-08-13", "objekt": "Ana Valbandon (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_f50094ed", "ulaz": "2026-08-13", "izlaz": "2026-08-20", "objekt": "Ana Valbandon (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_516cfa5f", "ulaz": "2026-07-23", "izlaz": "2026-07-27", "objekt": "Piantina (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 35}, {"id": "s_f8267dba", "ulaz": "2026-07-31", "izlaz": "2026-08-04", "objekt": "Piantina (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 35}, {"id": "s_cdc816dc", "ulaz": "2026-08-04", "izlaz": "2026-08-11", "objekt": "Piantina (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 35}, {"id": "s_a09f1dfb", "ulaz": "2026-08-16", "izlaz": "2026-08-20", "objekt": "Piantina (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 35}, {"id": "s_5b573c9f", "ulaz": "2026-07-13", "izlaz": "2026-07-16", "objekt": "Zoanda (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_9f2300d6", "ulaz": "2026-07-16", "izlaz": "2026-07-21", "objekt": "Zoanda (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_848f1d4d", "ulaz": "2026-07-21", "izlaz": "2026-07-25", "objekt": "Zoanda (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_2c738570", "ulaz": "2026-07-26", "izlaz": "2026-08-02", "objekt": "Zoanda (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_7d64d2d1", "ulaz": "2026-08-02", "izlaz": "2026-08-06", "objekt": "Zoanda (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_8aa69de2", "ulaz": "2026-08-08", "izlaz": "2026-08-12", "objekt": "Zoanda (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_17ce5517", "ulaz": "2026-08-12", "izlaz": "2026-08-18", "objekt": "Zoanda (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_8219ad74", "ulaz": "2026-08-21", "izlaz": "2026-08-26", "objekt": "Zoanda (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_3776f683", "ulaz": "2026-09-13", "izlaz": "2026-09-25", "objekt": "Zoanda (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_7716cd9b", "ulaz": "2026-07-08", "izlaz": "2026-07-13", "objekt": "Luna Holiday (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_0cad7aa6", "ulaz": "2026-07-14", "izlaz": "2026-07-19", "objekt": "Luna Holiday (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_3ab91ebf", "ulaz": "2026-07-20", "izlaz": "2026-07-24", "objekt": "Luna Holiday (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_6b4ea1db", "ulaz": "2026-07-27", "izlaz": "2026-07-30", "objekt": "Luna Holiday (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_be6e653e", "ulaz": "2026-07-30", "izlaz": "2026-08-08", "objekt": "Luna Holiday (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_8415868a", "ulaz": "2026-08-14", "izlaz": "2026-08-20", "objekt": "Luna Holiday (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_86bfc318", "ulaz": "2026-08-20", "izlaz": "2026-08-27", "objekt": "Luna Holiday (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_a5cd115a", "ulaz": "2026-09-03", "izlaz": "2026-09-06", "objekt": "Luna Holiday (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_fb738608", "ulaz": "2026-07-12", "izlaz": "2026-07-17", "objekt": "Chill (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_2219ed7a", "ulaz": "2026-07-17", "izlaz": "2026-07-20", "objekt": "Chill (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_4dacc000", "ulaz": "2026-07-20", "izlaz": "2026-07-24", "objekt": "Chill (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_961d0877", "ulaz": "2026-07-30", "izlaz": "2026-08-03", "objekt": "Chill (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_c922aea0", "ulaz": "2026-08-04", "izlaz": "2026-08-06", "objekt": "Chill (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_fdf0c8e4", "ulaz": "2026-08-06", "izlaz": "2026-08-11", "objekt": "Chill (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_2a75a5f6", "ulaz": "2026-08-18", "izlaz": "2026-08-25", "objekt": "Chill (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_87240f82", "ulaz": "2026-09-12", "izlaz": "2026-09-17", "objekt": "Chill (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_99f4e4a2", "ulaz": "2026-07-10", "izlaz": "2026-07-13", "objekt": "Urban (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_a21e9d75", "ulaz": "2026-07-15", "izlaz": "2026-07-18", "objekt": "Urban (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_012a1b4d", "ulaz": "2026-07-23", "izlaz": "2026-07-26", "objekt": "Urban (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_3850e61d", "ulaz": "2026-07-30", "izlaz": "2026-08-02", "objekt": "Urban (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_d6887ff8", "ulaz": "2026-08-04", "izlaz": "2026-08-06", "objekt": "Urban (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_9063bb59", "ulaz": "2026-08-08", "izlaz": "2026-08-11", "objekt": "Urban (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_ad0c00ac", "ulaz": "2026-08-15", "izlaz": "2026-08-22", "objekt": "Urban (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_cca38ecf", "ulaz": "2026-08-31", "izlaz": "2026-09-09", "objekt": "Urban (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_6cb3dd95", "ulaz": "2026-07-17", "izlaz": "2026-07-23", "objekt": "Novi Premantura (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_d15c017a", "ulaz": "2026-07-23", "izlaz": "2026-07-26", "objekt": "Novi Premantura (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_cda45ec1", "ulaz": "2026-07-26", "izlaz": "2026-08-01", "objekt": "Novi Premantura (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_dce30ebb", "ulaz": "2026-08-09", "izlaz": "2026-08-25", "objekt": "Novi Premantura (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_70e61e95", "ulaz": "2026-07-19", "izlaz": "", "objekt": "Vila Lord - App 2 (veliki)", "vrsta": "Čišćenje", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_8e4f87e9", "ulaz": "2026-07-23", "izlaz": "", "objekt": "Vila Lord - App 2 (veliki)", "vrsta": "Čišćenje", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_16dde151", "ulaz": "2026-08-11", "izlaz": "", "objekt": "Vila Lord - App 2 (veliki)", "vrsta": "Čišćenje", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_e936cab5", "ulaz": "2026-08-18", "izlaz": "", "objekt": "Vila Lord - App 2 (veliki)", "vrsta": "Čišćenje", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_908516a7", "ulaz": "2026-07-24", "izlaz": "", "objekt": "Vila Lord - App 1 (veliki)", "vrsta": "Čišćenje", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_ad2ca743", "ulaz": "2026-08-24", "izlaz": "", "objekt": "Vila Lord - App 3 (mali)", "vrsta": "Čišćenje", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 25}, {"id": "s_81fc29c7", "ulaz": "2026-07-11", "izlaz": "2026-07-16", "objekt": "Farfalle (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_68263d66", "ulaz": "2026-07-20", "izlaz": "2026-07-25", "objekt": "Farfalle (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_7644fc58", "ulaz": "2026-07-25", "izlaz": "2026-07-30", "objekt": "Farfalle (Apartman)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_06c9f987", "ulaz": "2026-07-04", "izlaz": "2026-07-18", "objekt": "Fassano (Vila)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 140}, {"id": "s_cad546cf", "ulaz": "2026-07-18", "izlaz": "2026-07-25", "objekt": "Fassano (Vila)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 140}, {"id": "s_768f9847", "ulaz": "2026-07-25", "izlaz": "2026-08-01", "objekt": "Fassano (Vila)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 140}, {"id": "s_4cf3419c", "ulaz": "2026-08-01", "izlaz": "2026-08-15", "objekt": "Fassano (Vila)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 140}, {"id": "s_669411d7", "ulaz": "2026-08-22", "izlaz": "2026-09-05", "objekt": "Fassano (Vila)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 140}, {"id": "s_eca2eabe", "ulaz": "2026-09-05", "izlaz": "2026-09-12", "objekt": "Fassano (Vila)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 140}, {"id": "s_4fe28c5a", "ulaz": "2026-09-12", "izlaz": "2026-09-26", "objekt": "Fassano (Vila)", "vrsta": "Boravak", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 140}, {"id": "s_4dc8f40c", "ulaz": "2026-07-18", "izlaz": "", "objekt": "Flavia (Vila)", "vrsta": "Čišćenje", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 120}, {"id": "s_dbca2b84", "ulaz": "2026-07-25", "izlaz": "", "objekt": "Flavia (Vila)", "vrsta": "Čišćenje", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 120}, {"id": "s_8ac6c959", "ulaz": "2026-08-08", "izlaz": "", "objekt": "Flavia (Vila)", "vrsta": "Čišćenje", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 120}, {"id": "s_7bf44611", "ulaz": "2026-07-25", "izlaz": "", "objekt": "Flavia (Vila)", "vrsta": "Čišćenje", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 120}, {"id": "s_61e0f37b", "ulaz": "2026-08-08", "izlaz": "", "objekt": "Flavia (Vila)", "vrsta": "Čišćenje", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 120}, {"id": "s_89606cc9", "ulaz": "2026-08-20", "izlaz": "", "objekt": "Flavia (Vila)", "vrsta": "Čišćenje", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 120}, {"id": "s_6a3afe3e", "ulaz": "2026-08-29", "izlaz": "", "objekt": "Flavia (Vila)", "vrsta": "Čišćenje", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 120}, {"id": "s_e3bb6373", "ulaz": "2026-08-13", "izlaz": "", "objekt": "Flavia (Vila)", "vrsta": "Čišćenje", "gost": "", "status": "Zakazano", "napomena": "", "zarada": 120}, {"id": "s_d167b152", "ulaz": "2026-07-02", "izlaz": "2026-07-07", "objekt": "Tonia (Apartman)", "vrsta": "Boravak", "gost": "Miroslav Meloun", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_e22fbc34", "ulaz": "2026-07-08", "izlaz": "2026-07-12", "objekt": "Tonia (Apartman)", "vrsta": "Boravak", "gost": "Jeno Kudrjavcev", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_d4ec64b3", "ulaz": "2026-08-03", "izlaz": "2026-08-09", "objekt": "Tonia (Apartman)", "vrsta": "Boravak", "gost": "Tas Komáromi", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_f4cd43e3", "ulaz": "2026-08-22", "izlaz": "2026-08-28", "objekt": "Tonia (Apartman)", "vrsta": "Boravak", "gost": "Tímea Zattler", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_6e6718a4", "ulaz": "2026-08-31", "izlaz": "2026-09-07", "objekt": "Tonia (Apartman)", "vrsta": "Boravak", "gost": "Lars Kövari", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_1fe7c81e", "ulaz": "2026-09-19", "izlaz": "2026-09-23", "objekt": "Tonia (Apartman)", "vrsta": "Boravak", "gost": "S…", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_50cc90ec", "ulaz": "2026-07-01", "izlaz": "2026-07-10", "objekt": "Antico OG (Apartman)", "vrsta": "Boravak", "gost": "Cerna Lenka", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_8d3b1553", "ulaz": "2026-07-13", "izlaz": "2026-07-19", "objekt": "Antico OG (Apartman)", "vrsta": "Boravak", "gost": "Martina Valent", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_303e6d21", "ulaz": "2026-07-20", "izlaz": "2026-07-31", "objekt": "Antico OG (Apartman)", "vrsta": "Boravak", "gost": "Kammerer Stefan", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_6550b602", "ulaz": "2026-08-07", "izlaz": "2026-08-17", "objekt": "Antico OG (Apartman)", "vrsta": "Boravak", "gost": "Auffinger Konstantin", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_d91acc8a", "ulaz": "2026-08-29", "izlaz": "2026-09-06", "objekt": "Antico OG (Apartman)", "vrsta": "Boravak", "gost": "Vanessa Thomas", "status": "Zakazano", "napomena": "", "zarada": 40}, {"id": "s_cac87aae", "ulaz": "2026-07-05", "izlaz": "2026-07-11", "objekt": "Antico EG (Apartman)", "vrsta": "Boravak", "gost": "Viktoria Capito", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_883f7ace", "ulaz": "2026-07-11", "izlaz": "2026-07-18", "objekt": "Antico EG (Apartman)", "vrsta": "Boravak", "gost": "Maša Mlakar", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_6eb161cd", "ulaz": "2026-08-22", "izlaz": "2026-08-29", "objekt": "Antico EG (Apartman)", "vrsta": "Boravak", "gost": "Magda Bočková", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_70187377", "ulaz": "2026-07-20", "izlaz": "2026-07-25", "objekt": "Lorenzo OG (Apartman)", "vrsta": "Boravak", "gost": "Alexandra Winter", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_88125028", "ulaz": "2026-08-04", "izlaz": "2026-08-09", "objekt": "Lorenzo OG (Apartman)", "vrsta": "Boravak", "gost": "Rebeka Pintér", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_7acb28fe", "ulaz": "2026-09-04", "izlaz": "2026-09-12", "objekt": "Lorenzo OG (Apartman)", "vrsta": "Boravak", "gost": "Szilard Riszter", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_82c08912", "ulaz": "2026-07-27", "izlaz": "2026-08-07", "objekt": "Lorenzo EG (Apartman)", "vrsta": "Boravak", "gost": "Leonardo Lazzari", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_5acab306", "ulaz": "2026-08-20", "izlaz": "2026-08-29", "objekt": "Lorenzo EG (Apartman)", "vrsta": "Boravak", "gost": "Fanni Kovács", "status": "Zakazano", "napomena": "", "zarada": 30}, {"id": "s_e9f40e20", "ulaz": "2026-07-04", "izlaz": "2026-07-11", "objekt": "Vila Gardenia (Vila)", "vrsta": "Boravak", "gost": "Jakab Csizy", "status": "Zakazano", "napomena": "", "zarada": 110}, {"id": "s_0a9e7161", "ulaz": "2026-07-11", "izlaz": "2026-07-18", "objekt": "Vila Gardenia (Vila)", "vrsta": "Boravak", "gost": "Anders Poulsen", "status": "Zakazano", "napomena": "", "zarada": 110}, {"id": "s_303e558b", "ulaz": "2026-07-18", "izlaz": "2026-07-25", "objekt": "Vila Gardenia (Vila)", "vrsta": "Boravak", "gost": "Kristina Persson", "status": "Zakazano", "napomena": "", "zarada": 110}, {"id": "s_39c13022", "ulaz": "2026-07-25", "izlaz": "2026-08-01", "objekt": "Vila Gardenia (Vila)", "vrsta": "Boravak", "gost": "Johannes Dezelhofer", "status": "Zakazano", "napomena": "", "zarada": 110}, {"id": "s_84b9f8d5", "ulaz": "2026-08-01", "izlaz": "2026-08-08", "objekt": "Vila Gardenia (Vila)", "vrsta": "Boravak", "gost": "Brigitte Oberauer-Weissenböck", "status": "Zakazano", "napomena": "", "zarada": 110}, {"id": "s_7b83e19e", "ulaz": "2026-08-12", "izlaz": "2026-08-29", "objekt": "Vila Gardenia (Vila)", "vrsta": "Boravak", "gost": "Johanna & Carsten + Freunde", "status": "Zakazano", "napomena": "", "zarada": 110}, {"id": "s_240fbbb0", "ulaz": "2026-08-29", "izlaz": "2026-09-05", "objekt": "Vila Gardenia (Vila)", "vrsta": "Boravak", "gost": "Yan Fitzner", "status": "Zakazano", "napomena": "", "zarada": 110}, {"id": "s_2d8743cb", "ulaz": "2026-09-08", "izlaz": "2026-09-13", "objekt": "Vila Gardenia (Vila)", "vrsta": "Boravak", "gost": "Radosław Wiśniowski", "status": "Zakazano", "napomena": "", "zarada": 110}, {"id": "s_b5b14873", "ulaz": "2026-09-14", "izlaz": "2026-09-21", "objekt": "Vila Gardenia (Vila)", "vrsta": "Boravak", "gost": "Niklas Wernicke", "status": "Zakazano", "napomena": "", "zarada": 110}]};
+const PRICE_MAP = {"Topolino (Vila)": 140, "Ana Valbandon (Apartman)": 40, "Piantina (Apartman)": 35, "Zoanda (Apartman)": 40, "Luna Holiday (Apartman)": 30, "Chill (Apartman)": 25, "Urban (Apartman)": 25, "Novi Premantura (Apartman)": 30, "Vila Lord - App 1 (veliki)": 25, "Vila Lord - App 2 (veliki)": 25, "Vila Lord - App 3 (mali)": 25, "Farfalle (Apartman)": 30, "Fassano (Vila)": 140, "Flavia (Vila)": 120, "Tonia (Apartman)": 40, "Antico OG (Apartman)": 40, "Antico EG (Apartman)": 30, "Lorenzo OG (Apartman)": 30, "Lorenzo EG (Apartman)": 30, "Vila Gardenia (Vila)": 110};
+
+  let data = { objekti: [], shifts: [] };
+
+  async function loadData(){
+    try{
+      const res = await storageApi.get(STORAGE_KEY);
+      data = (res && res.value) ? JSON.parse(res.value) : null;
+    }catch(e){
+      data = null;
+    }
+
+    // Oporavak: ako dijeljena pohrana nema ništa, pokušaj povući stare osobne podatke
+    // (od prije nego što je pohrana prebačena na dijeljenu) i prebaci ih u dijeljenu.
+    if(!data){
+      try{
+        const oldRes = await storageApi.get(STORAGE_KEY);
+        if(oldRes && oldRes.value){
+          data = JSON.parse(oldRes.value);
+          if(!data.objekti) data.objekti = [];
+          if(!data.shifts) data.shifts = [];
+          if(!data.napomene) data.napomene = [];
+          await persist(); // odmah prebaci oporavljene podatke u dijeljenu pohranu
+        }
+      }catch(e){ /* nema starih osobnih podataka */ }
+    }
+
+    if(!data) data = { objekti: [], shifts: [] };
+    if(!data.objekti) data.objekti = [];
+    if(!data.shifts) data.shifts = [];
+    if(!data.napomene) data.napomene = [];
+
+    // Jednokratni prelazak na v3 shemu (Ulaz/Izlaz, jedan red po boravku).
+    // Ako je tablica prazna ILI redovi još koriste staru shemu (datum/datumDo), učitaj svježe pripremljene podatke.
+    let schemaFlag = null;
+    try{ schemaFlag = await storageApi.get(SCHEMA_KEY); }catch(e){ schemaFlag = null; }
+    const staraShema = data.shifts.some(s => s.ulaz === undefined);
+    if(!schemaFlag && (staraShema || (data.objekti.length === 0 && data.shifts.length === 0))){
+      data = { objekti: JSON.parse(JSON.stringify(STARTER_DATA.objekti)), shifts: JSON.parse(JSON.stringify(STARTER_DATA.shifts)), napomene: data.napomene || [] };
+      await persist();
+      try{ await storageApi.set(SCHEMA_KEY, 'done'); }catch(e){}
+    }
+
+    // Jednokratna primjena cijena čišćenja po objektu (ako podaci već postoje od ranije bez cijena)
+    let priceFlag = null;
+    try{ priceFlag = await storageApi.get(PRICE_FLAG_KEY); }catch(e){ priceFlag = null; }
+    if(!priceFlag){
+      let promijenjeno = false;
+      data.objekti.forEach(o => {
+        if(PRICE_MAP[o.naziv] !== undefined && (!o.cijena || o.cijena === 0)){
+          o.cijena = PRICE_MAP[o.naziv];
+          promijenjeno = true;
+        }
+      });
+      data.shifts.forEach(s => {
+        if(PRICE_MAP[s.objekt] !== undefined && (!s.zarada || s.zarada === 0)){
+          s.zarada = PRICE_MAP[s.objekt];
+          promijenjeno = true;
+        }
+      });
+      if(promijenjeno){ await persist(); }
+      try{ await storageApi.set(PRICE_FLAG_KEY, 'done'); }catch(e){}
+    }
+
+    // Jednokratni dodatak novih bookinga (17.7. Tonia, 21.7. Lorenzo EG, 9.7. Piantina)
+    let patchAFlag = null;
+    try{ patchAFlag = await storageApi.get(PATCH_2026_07_A_KEY); }catch(e){ patchAFlag = null; }
+    if(!patchAFlag){
+      let dodano = false;
+      NEW_BOOKINGS_PATCH_A.forEach(nb => {
+        const postoji = data.shifts.some(s => s.objekt === nb.objekt && s.ulaz === nb.ulaz && s.izlaz === nb.izlaz);
+        if(!postoji){
+          data.shifts.push(Object.assign({ id: uid('s') }, nb));
+          dodano = true;
+        }
+      });
+      if(dodano){ await persist(); }
+      try{ await storageApi.set(PATCH_2026_07_A_KEY, 'done'); }catch(e){}
+    }
+
+    // Jednokratni dodatak novog bookinga (13.7.-15.7. Urban)
+    let patchBFlag = null;
+    try{ patchBFlag = await storageApi.get(PATCH_2026_07_B_KEY); }catch(e){ patchBFlag = null; }
+    if(!patchBFlag){
+      let dodanoB = false;
+      NEW_BOOKINGS_PATCH_B.forEach(nb => {
+        const postoji = data.shifts.some(s => s.objekt === nb.objekt && s.ulaz === nb.ulaz && s.izlaz === nb.izlaz);
+        if(!postoji){
+          data.shifts.push(Object.assign({ id: uid('s') }, nb));
+          dodanoB = true;
+        }
+      });
+      if(dodanoB){ await persist(); }
+      try{ await storageApi.set(PATCH_2026_07_B_KEY, 'done'); }catch(e){}
+    }
+
+    // Jednokratni dodatak novog bookinga (13.7.-17.7. Tonia)
+    let patchCFlag = null;
+    try{ patchCFlag = await storageApi.get(PATCH_2026_07_C_KEY); }catch(e){ patchCFlag = null; }
+    if(!patchCFlag){
+      let dodanoC = false;
+      NEW_BOOKINGS_PATCH_C.forEach(nb => {
+        const postoji = data.shifts.some(s => s.objekt === nb.objekt && s.ulaz === nb.ulaz && s.izlaz === nb.izlaz);
+        if(!postoji){
+          data.shifts.push(Object.assign({ id: uid('s') }, nb));
+          dodanoC = true;
+        }
+      });
+      if(dodanoC){ await persist(); }
+      try{ await storageApi.set(PATCH_2026_07_C_KEY, 'done'); }catch(e){}
+    }
+
+    // Jednokratni dodatak novog bookinga (10.8.-15.8. Lorenzo OG, Carina Zimmermann)
+    let patchDFlag = null;
+    try{ patchDFlag = await storageApi.get(PATCH_2026_08_D_KEY); }catch(e){ patchDFlag = null; }
+    if(!patchDFlag){
+      let dodanoD = false;
+      NEW_BOOKINGS_PATCH_D.forEach(nb => {
+        const postoji = data.shifts.some(s => s.objekt === nb.objekt && s.ulaz === nb.ulaz && s.izlaz === nb.izlaz);
+        if(!postoji){
+          data.shifts.push(Object.assign({ id: uid('s') }, nb));
+          dodanoD = true;
+        }
+      });
+      if(dodanoD){ await persist(); }
+      try{ await storageApi.set(PATCH_2026_08_D_KEY, 'done'); }catch(e){}
+    }
+
+    // Jednokratni dodatak novog bookinga (12.8.-18.8. Tonia, Szabolcs Keresztes)
+    let patchEFlag = null;
+    try{ patchEFlag = await storageApi.get(PATCH_2026_08_E_KEY); }catch(e){ patchEFlag = null; }
+    if(!patchEFlag){
+      let dodanoE = false;
+      NEW_BOOKINGS_PATCH_E.forEach(nb => {
+        const postoji = data.shifts.some(s => s.objekt === nb.objekt && s.ulaz === nb.ulaz && s.izlaz === nb.izlaz);
+        if(!postoji){
+          data.shifts.push(Object.assign({ id: uid('s') }, nb));
+          dodanoE = true;
+        }
+      });
+      if(dodanoE){ await persist(); }
+      try{ await storageApi.set(PATCH_2026_08_E_KEY, 'done'); }catch(e){}
+    }
+
+    // Jednokratni dodatak novog bookinga (7.10.-15.10. Vila Gardenia, Sophie Weidner)
+    let patchFFlag = null;
+    try{ patchFFlag = await storageApi.get(PATCH_2026_10_F_KEY); }catch(e){ patchFFlag = null; }
+    if(!patchFFlag){
+      let dodanoF = false;
+      NEW_BOOKINGS_PATCH_F.forEach(nb => {
+        const postoji = data.shifts.some(s => s.objekt === nb.objekt && s.ulaz === nb.ulaz && s.izlaz === nb.izlaz);
+        if(!postoji){
+          data.shifts.push(Object.assign({ id: uid('s') }, nb));
+          dodanoF = true;
+        }
+      });
+      if(dodanoF){ await persist(); }
+      try{ await storageApi.set(PATCH_2026_10_F_KEY, 'done'); }catch(e){}
+    }
+
+    render();
+  }
+
+  async function persist(){
+    try{ await storageApi.set(STORAGE_KEY, JSON.stringify(data)); }
+    catch(e){ console.error('Greška pri spremanju podataka', e); }
+  }
+
+  function uid(prefix){ return prefix + '_' + Math.random().toString(36).slice(2,9); }
+
+  function eur(n){
+    const v = Number(n) || 0;
+    return v.toLocaleString('hr-HR', {minimumFractionDigits: v % 1 === 0 ? 0 : 2, maximumFractionDigits: 2}) + ' €';
+  }
+
+  function vrstaClass(v){
+    if(v === 'Dubinsko čišćenje') return 'vrsta-dubinsko';
+    if(v === 'Čišćenje') return 'vrsta-ciscenje';
+    return 'vrsta-boravak';
+  }
+  function vrstaIcon(v){
+    if(v === 'Dubinsko čišćenje') return '✨';
+    if(v === 'Čišćenje') return '🧹';
+    return '🏠';
+  }
+
+  function fmtDate(iso){
+    if(!iso) return '—';
+    const dt = new Date(iso + 'T00:00:00');
+    return isNaN(dt) ? iso : dt.toLocaleDateString('hr-HR', {day:'2-digit', month:'2-digit', year:'numeric'});
+  }
+
+  function refreshObjektDropdowns(){
+    const filterSel = document.getElementById('filterObjekt');
+    const formSel = document.getElementById('f-objekt');
+    const noteSel = document.getElementById('n-objekt');
+    const noteFilterSel = document.getElementById('filterNoteObjekt');
+    const currentFilter = filterSel.value;
+    const currentNoteFilter = noteFilterSel.value;
+    filterSel.innerHTML = '<option value="">Svi objekti</option>' +
+      data.objekti.map(o => `<option value="${escapeAttr(o.naziv)}">${escapeHtml(o.naziv)}</option>`).join('');
+    filterSel.value = currentFilter;
+    formSel.innerHTML = '<option value="">— odaberi —</option>' +
+      data.objekti.map(o => `<option value="${escapeAttr(o.naziv)}">${escapeHtml(o.naziv)}</option>`).join('');
+    noteSel.innerHTML = '<option value="">Opća napomena (bez objekta)</option>' +
+      data.objekti.map(o => `<option value="${escapeAttr(o.naziv)}">${escapeHtml(o.naziv)}</option>`).join('');
+    noteFilterSel.innerHTML = '<option value="">Sve napomene</option>' +
+      data.objekti.map(o => `<option value="${escapeAttr(o.naziv)}">${escapeHtml(o.naziv)}</option>`).join('');
+    noteFilterSel.value = currentNoteFilter;
+  }
+
+  function escapeHtml(s){
+    return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function escapeAttr(s){ return escapeHtml(s); }
+
+  function getFilteredSorted(){
+    const objF = document.getElementById('filterObjekt').value;
+    const statF = document.getElementById('filterStatus').value;
+    let list = data.shifts.filter(s => {
+      if(objF && s.objekt !== objF) return false;
+      if(statF && s.status !== statF) return false;
+      return true;
+    });
+    list.sort((a,b) => {
+      const ka = a.ulaz || '';
+      const kb = b.ulaz || '';
+      return sortAsc ? ka.localeCompare(kb) : kb.localeCompare(ka);
+    });
+    return list;
+  }
+
+  function render(){
+    refreshObjektDropdowns();
+    renderRaspored();
+    renderPoObjektu();
+    renderPoTjednu();
+    renderObjekti();
+    renderNapomene();
+    renderTotals();
+  }
+
+  function shiftRowHtml(s){
+    return `
+      <tr data-id="${s.id}">
+        <td class="date-cell">${escapeHtml(fmtDate(s.ulaz))}</td>
+        <td class="arrow-cell">${s.izlaz ? '→' : ''}</td>
+        <td class="date-cell izlaz">${escapeHtml(s.izlaz ? fmtDate(s.izlaz) : '—')}</td>
+        <td class="obj-name">${escapeHtml(s.objekt || '—')}</td>
+        <td><span class="vrsta-chip ${vrstaClass(s.vrsta)}">${vrstaIcon(s.vrsta)} ${escapeHtml(s.vrsta)}</span></td>
+        <td>${escapeHtml(s.gost || '—')}</td>
+        <td>
+          <span class="status-badge ${s.status === 'Odrađeno' ? 'status-odradjeno' : 'status-zakazano'}" data-action="toggle-status" data-id="${s.id}">
+            ${s.status === 'Odrađeno' ? '✓ Odrađeno' : '○ Zakazano'}
+          </span>
+        </td>
+        <td class="napomena-cell">${escapeHtml(s.napomena || '')}</td>
+        <td class="zarada-cell">${eur(s.zarada)}</td>
+        <td><button class="del-btn" data-action="del-shift" data-id="${s.id}" title="Obriši unos">✕</button></td>
+      </tr>`;
+  }
+
+  function shiftTableHtml(list, tbodyId){
+    if(list.length === 0){
+      return `<table><tbody><tr class="empty-row"><td>Nema unosa.</td></tr></tbody></table>`;
+    }
+    return `
+      <table>
+        <thead>
+          <tr>
+            <th>Ulaz</th><th></th><th>Izlaz</th><th>Objekt</th><th>Vrsta</th><th>Gost</th>
+            <th>Status</th><th>Napomena</th><th style="text-align:right;">Zarada</th><th></th>
+          </tr>
+        </thead>
+        <tbody${tbodyId ? ` id="${tbodyId}"` : ''}>${list.map(shiftRowHtml).join('')}</tbody>
+      </table>`;
+  }
+
+  function renderRaspored(){
+    const body = document.getElementById('rasporedBody');
+    const list = getFilteredSorted();
+    if(list.length === 0){
+      body.innerHTML = `<tr class="empty-row"><td colspan="10">Nema unosa koji odgovaraju filtrima. Dodaj novi unos ili promijeni filtere.</td></tr>`;
+      return;
+    }
+    body.innerHTML = list.map(shiftRowHtml).join('');
+  }
+
+  let selectedPoObjektu = null;
+
+  function renderPoObjektu(){
+    const picker = document.getElementById('objPicker');
+    if(!picker) return;
+    picker.innerHTML = data.objekti.map(o =>
+      `<button class="obj-chip ${o.naziv === selectedPoObjektu ? 'active' : ''}" data-action="pick-objekt" data-naziv="${escapeAttr(o.naziv)}">${escapeHtml(o.naziv)}</button>`
+    ).join('');
+
+    const wrap = document.getElementById('poObjektuSadrzaj');
+    if(!wrap) return;
+    if(!selectedPoObjektu){
+      wrap.innerHTML = `<div class="note-empty">Odaberi objekt gore za pregled njegovog rasporeda.</div>`;
+      return;
+    }
+    const list = data.shifts.filter(s => s.objekt === selectedPoObjektu).slice().sort((a,b) => (a.ulaz||'').localeCompare(b.ulaz||''));
+    const ukupno = list.reduce((sum, s) => sum + (Number(s.zarada) || 0), 0);
+    const neodradjeno = list.filter(s => s.status !== 'Odrađeno').length;
+    wrap.innerHTML = `
+      <div class="obj-summary">
+        <div class="stat">Broj unosa<br><b>${list.length}</b></div>
+        <div class="stat">Ukupna zarada<br><b>${eur(ukupno)}</b></div>
+        <div class="stat">Neodrađeno<br><b>${neodradjeno}</b></div>
+      </div>
+      <div style="overflow-x:auto;">${shiftTableHtml(list)}</div>
+    `;
+  }
+
+  function getMonday(dateStr){
+    const dt = new Date(dateStr + 'T00:00:00');
+    if(isNaN(dt)) return null;
+    const day = dt.getDay();
+    const diff = (day === 0 ? -6 : 1) - day;
+    dt.setDate(dt.getDate() + diff);
+    return dt;
+  }
+
+  function renderPoTjednu(){
+    const wrap = document.getElementById('poTjednuSadrzaj');
+    if(!wrap) return;
+    const withDates = data.shifts.filter(s => s.ulaz);
+    if(withDates.length === 0){
+      wrap.innerHTML = `<div class="note-empty">Nema unosa s datumom.</div>`;
+      return;
+    }
+    const groups = {};
+    withDates.forEach(s => {
+      const mon = getMonday(s.ulaz);
+      if(!mon) return;
+      const key = mon.toISOString().slice(0,10);
+      if(!groups[key]) groups[key] = [];
+      groups[key].push(s);
+    });
+    const weekKeys = Object.keys(groups).sort();
+    wrap.innerHTML = weekKeys.map(key => {
+      const monDt = new Date(key + 'T00:00:00');
+      const sunDt = new Date(monDt); sunDt.setDate(sunDt.getDate() + 6);
+      const list = groups[key].slice().sort((a,b) => (a.ulaz||'').localeCompare(b.ulaz||''));
+      const ukupno = list.reduce((sum, s) => sum + (Number(s.zarada) || 0), 0);
+      return `
+        <div class="week-block">
+          <div class="week-header">
+            <h3>Tjedan: ${fmtDate(monDt.toISOString().slice(0,10))} — ${fmtDate(sunDt.toISOString().slice(0,10))}</h3>
+            <span class="week-total">${list.length} unosa · ${eur(ukupno)}</span>
+          </div>
+          <div style="overflow-x:auto;">${shiftTableHtml(list)}</div>
+        </div>`;
+    }).join('');
+  }
+
+  function renderObjekti(){
+    const grid = document.getElementById('objektiGrid');
+    if(data.objekti.length === 0){
+      grid.innerHTML = `<p style="color:var(--ink-soft); font-style:italic;">Nema unesenih objekata.</p>`;
+      return;
+    }
+    grid.innerHTML = data.objekti.map(o => `
+      <div class="obj-card">
+        <button class="del-btn" data-action="del-objekt" data-id="${o.id}" title="Obriši objekt">✕</button>
+        <h3>${escapeHtml(o.naziv)}</h3>
+        <div class="row">📍 ${escapeHtml(o.adresa || '—')}</div>
+        <div class="row">☎ ${escapeHtml(o.kontakt || '—')}</div>
+        <div class="price">Čišćenje: ${eur(o.cijena)}</div>
+      </div>`).join('');
+  }
+
+  function fmtDateTime(iso){
+    if(!iso) return '';
+    const dt = new Date(iso);
+    if(isNaN(dt)) return '';
+    const datum = dt.toLocaleDateString('hr-HR', {day:'2-digit', month:'2-digit', year:'numeric'});
+    const vrijeme = dt.toLocaleTimeString('hr-HR', {hour:'2-digit', minute:'2-digit'});
+    return datum + ' · ' + vrijeme;
+  }
+
+  function renderNapomene(){
+    const list = document.getElementById('napomeneList');
+    const objF = document.getElementById('filterNoteObjekt').value;
+    let napomene = (data.napomene || []).filter(n => !objF || n.objekt === objF);
+    napomene = napomene.slice().sort((a,b) => (b.datum || '').localeCompare(a.datum || ''));
+    if(napomene.length === 0){
+      list.innerHTML = `<div class="note-empty">Još nema napomena. Upiši prvu iznad — traje par sekundi.</div>`;
+      return;
+    }
+    list.innerHTML = napomene.map(n => `
+      <div class="note-card">
+        <div class="note-date">${escapeHtml(fmtDateTime(n.datum))}</div>
+        <div class="note-body">
+          <span class="note-tag ${n.objekt ? '' : 'opca'}">${n.objekt ? escapeHtml(n.objekt) : 'Opće'}</span>
+          <div class="note-text">${escapeHtml(n.tekst)}</div>
+        </div>
+        <button class="del-btn" data-action="del-napomena" data-id="${n.id}" title="Obriši napomenu">✕</button>
+      </div>`).join('');
+  }
+
+  function renderTotals(){
+    const totalAll = data.shifts.reduce((sum, s) => sum + (Number(s.zarada) || 0), 0);
+    const filtered = getFilteredSorted();
+    const totalFiltered = filtered.reduce((sum, s) => sum + (Number(s.zarada) || 0), 0);
+    const pending = data.shifts.filter(s => s.status !== 'Odrađeno').length;
+    document.getElementById('totalAll').textContent = eur(totalAll);
+    document.getElementById('totalFiltered').textContent = eur(totalFiltered);
+    document.getElementById('totalPending').textContent = pending;
+  }
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.dataset.tab;
+      document.getElementById('tab-raspored').style.display = tab === 'raspored' ? 'block' : 'none';
+      document.getElementById('tab-poobjektu').style.display = tab === 'poobjektu' ? 'block' : 'none';
+      document.getElementById('tab-potjednu').style.display = tab === 'potjednu' ? 'block' : 'none';
+      document.getElementById('tab-objekti').style.display = tab === 'objekti' ? 'block' : 'none';
+      document.getElementById('tab-napomene').style.display = tab === 'napomene' ? 'block' : 'none';
+    });
+  });
+
+  document.getElementById('filterObjekt').addEventListener('change', render);
+  document.getElementById('filterStatus').addEventListener('change', render);
+  document.getElementById('filterNoteObjekt').addEventListener('change', renderNapomene);
+
+  document.getElementById('saveNoteBtn').addEventListener('click', async () => {
+    const tekst = document.getElementById('n-tekst').value.trim();
+    if(!tekst){ alert('Upiši tekst napomene prije spremanja.'); return; }
+    const nova = {
+      id: uid('n'),
+      datum: new Date().toISOString(),
+      objekt: document.getElementById('n-objekt').value,
+      tekst
+    };
+    if(!data.napomene) data.napomene = [];
+    data.napomene.push(nova);
+    await persist();
+    document.getElementById('n-tekst').value = '';
+    document.getElementById('n-objekt').value = '';
+    renderNapomene();
+  });
+
+  document.getElementById('sortBtn').addEventListener('click', () => {
+    sortAsc = !sortAsc;
+    document.getElementById('sortBtn').innerHTML = `<span id="sortLabel">${sortAsc ? 'Najraniji prvi' : 'Najkasniji prvi'}</span> ${sortAsc ? '↓' : '↑'}`;
+    render();
+  });
+
+  const addForm = document.getElementById('addForm');
+  document.getElementById('toggleAddBtn').addEventListener('click', () => {
+    addForm.classList.toggle('open');
+    if(addForm.classList.contains('open')){
+      document.getElementById('f-ulaz').value = new Date().toISOString().slice(0,10);
+    }
+  });
+  document.getElementById('cancelAddBtn').addEventListener('click', () => addForm.classList.remove('open'));
+  document.getElementById('saveAddBtn').addEventListener('click', async () => {
+    const ulaz = document.getElementById('f-ulaz').value;
+    const objekt = document.getElementById('f-objekt').value;
+    if(!ulaz || !objekt){ alert('Molimo unesi barem Ulaz (datum) i objekt.'); return; }
+    const novi = {
+      id: uid('s'),
+      ulaz,
+      izlaz: document.getElementById('f-izlaz').value,
+      objekt,
+      vrsta: document.getElementById('f-vrsta').value,
+      gost: document.getElementById('f-gost').value.trim(),
+      status: document.getElementById('f-status').value,
+      napomena: document.getElementById('f-napomena').value.trim(),
+      zarada: parseFloat(document.getElementById('f-zarada').value) || 0
+    };
+    data.shifts.push(novi);
+    await persist();
+    ['f-izlaz','f-gost','f-napomena','f-zarada'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f-objekt').value = '';
+    addForm.classList.remove('open');
+    render();
+  });
+
+  const addObjForm = document.getElementById('addObjForm');
+  document.getElementById('toggleAddObjBtn').addEventListener('click', () => addObjForm.classList.toggle('open'));
+  document.getElementById('cancelAddObjBtn').addEventListener('click', () => addObjForm.classList.remove('open'));
+  document.getElementById('saveAddObjBtn').addEventListener('click', async () => {
+    const naziv = document.getElementById('o-naziv').value.trim();
+    if(!naziv){ alert('Molimo unesi naziv objekta.'); return; }
+    const novi = {
+      id: uid('o'),
+      naziv,
+      adresa: document.getElementById('o-adresa').value.trim(),
+      kontakt: document.getElementById('o-kontakt').value.trim(),
+      cijena: parseFloat(document.getElementById('o-cijena').value) || 0
+    };
+    data.objekti.push(novi);
+    await persist();
+    ['o-naziv','o-adresa','o-kontakt','o-cijena'].forEach(id => document.getElementById(id).value = '');
+    addObjForm.classList.remove('open');
+    render();
+  });
+
+  document.addEventListener('click', async (e) => {
+    const target = e.target.closest('[data-action]');
+    if(!target) return;
+    const action = target.dataset.action;
+    const id = target.dataset.id;
+    if(action === 'toggle-status'){
+      const shift = data.shifts.find(s => s.id === id);
+      if(shift){ shift.status = shift.status === 'Odrađeno' ? 'Zakazano' : 'Odrađeno'; await persist(); render(); }
+    }
+    if(action === 'del-shift'){
+      if(confirm('Obrisati ovaj unos iz rasporeda?')){ data.shifts = data.shifts.filter(s => s.id !== id); await persist(); render(); }
+    }
+    if(action === 'del-objekt'){
+      if(confirm('Obrisati ovaj objekt s popisa?')){ data.objekti = data.objekti.filter(o => o.id !== id); await persist(); render(); }
+    }
+    if(action === 'del-napomena'){
+      if(confirm('Obrisati ovu napomenu?')){ data.napomene = (data.napomene || []).filter(n => n.id !== id); await persist(); renderNapomene(); }
+    }
+    if(action === 'pick-objekt'){
+      selectedPoObjektu = target.dataset.naziv;
+      renderPoObjektu();
+    }
+  });
+
+  loadData();
+})();
+</script>
+</body>
+</html>
